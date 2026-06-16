@@ -7,18 +7,16 @@ import subprocess
 import traceback
 from typing import TypedDict, Any
 
-
 class SumoSimEvent(TypedDict):
     scenario_zip_url: str
     output_prefix: str
 
-
-def sumo_sim_handler(event: str, context: Any):
+def sumo_sim_handler(event: dict, context: Any):
     try:
-        sumo_sim_event: SumoSimEvent = json.loads(event)
+        sumo_sim_event: SumoSimEvent = event
 
-        for key in sumo_sim_event.keys():
-            assert key in sumo_sim_event
+        assert "scenario_zip_url" in sumo_sim_event
+        assert "output_prefix" in sumo_sim_event
 
         url = sumo_sim_event["scenario_zip_url"]
         output_prefix = pathlib.Path(sumo_sim_event["output_prefix"])
@@ -78,8 +76,8 @@ def sumo_sim_handler(event: str, context: Any):
 
         return {
             "status": "success",
-            "edge_output_url": edge_output_final_path,
-            "summary_url": summary_output_final_path,
+            "edge_output_url": str(edge_output_final_path),
+            "summary_url": str(summary_output_final_path),
             "vehicle_count": vehicle_count,
         }
 
@@ -89,17 +87,20 @@ def sumo_sim_handler(event: str, context: Any):
             "exception": f"{e}\n{traceback.format_exc()}",  # I don't think an Exception is serialisable
         }
     finally:
-        shutil.rmtree("tmp/scenario", ignore_errors=True)
-        pathlib.Path("tmp/scenario.zip").unlink(missing_ok=True)
-        
-        # I could also delete the whole tmp dir?
-        pathlib.Path("tmp/summary.xml").unlink(missing_ok=True)
-        pathlib.Path("tmp/edge.xml").unlink(missing_ok=True)
+        try:
+            shutil.rmtree("tmp/scenario", ignore_errors=True)
+            pathlib.Path("tmp/scenario.zip").unlink(missing_ok=True)
+            
+            # I could also delete the whole tmp dir?
+            pathlib.Path("tmp/summary.xml").unlink(missing_ok=True)
+            pathlib.Path("tmp/edge.xml").unlink(missing_ok=True)
+        except:
+            pass
 
 
 if __name__ == "__main__":
     result = sumo_sim_handler(
-        json.dumps(SumoSimEvent(scenario_zip_url="test.zip", output_prefix="out/")),
+        SumoSimEvent(scenario_zip_url="test.zip", output_prefix="out/"),
         None,
     )
 

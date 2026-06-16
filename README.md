@@ -8,5 +8,6 @@ Assuming sumo only produces summary.xml and edge.xml. Other files not cleared du
 
 Assuming `tmp` and `out` directories exist in `/var/task`
 
+Assuming that top 10 busiest does not need to be sorted
 
 If I had more time I would make the Dockerfile a little more extentible. Specifically, to add more sumo-tools for instance, we first need to check if its a dynamic executable, in which case we need to copy libs. Otherwise copying the executable is enough.
