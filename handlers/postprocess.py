@@ -1,26 +1,55 @@
 import json
-import re
 import pathlib
-import zipfile
 import shutil
 import polars as pl
 import xml.etree.ElementTree as ET
 import traceback
+import boto3
+import os
 from typing import TypedDict, Any
+from urllib.parse import urlparse
+
+s3 = boto3.client("s3")
+
+
+def parse_s3(url: str):
+    assert url.startswith("s3://")
+    p = urlparse(url)
+    return p.netloc, p.path.lstrip("/")
+
+
+IS_LAMBDA = "AWS_LAMBDA_FUNCTION_NAME" in os.environ
+
+TMP = pathlib.Path("/tmp") if IS_LAMBDA else pathlib.Path("tmp")
+TMP.mkdir(exist_ok=True)
+
 
 class PostprocessEvent(TypedDict):
     edge_output_url: str
+    output_prefix: str
+
 
 def postprocess_handler(event: dict, context: Any):
-    try:
-        postprocess_event: PostprocessEvent = json.loads(event)
-        assert "edge_output_url" in postprocess_event
+    edge_output_temp_path = TMP / "edge_output.xml"
+    parquet_temp_path = TMP / "edges.parquet"
 
-        url = postprocess_event["edge_output_url"]
-        edge_output_temp_path = pathlib.Path("tmp/edge_output.xml")
-        
+    postprocess_event: PostprocessEvent = event
+
+    assert "edge_output_url" in postprocess_event
+    assert "output_prefix" in postprocess_event
+
+    url = postprocess_event["edge_output_url"]
+    output_prefix = postprocess_event["output_prefix"]
+
+    if not output_prefix.startswith("s3://"):
+        output_path = pathlib.Path(output_prefix)
+        output_path.mkdir(parents=True, exist_ok=True)
+        parquet_final_path = output_path / "edges.parquet"
+
+    try:
         if url.startswith("s3://"):
-            pass
+            bucket, key = parse_s3(url)
+            s3.download_file(bucket, key, str(edge_output_temp_path))
         else:
             original_path = pathlib.Path(url)
             shutil.copy(original_path, edge_output_temp_path)
@@ -28,10 +57,14 @@ def postprocess_handler(event: dict, context: Any):
         current_interval_begin: float | None = None
         rows: list[dict[str, str | float]] = []
 
-        for (xml_event, elem) in ET.iterparse(edge_output_temp_path, ("start", "end")):
+        for xml_event, elem in ET.iterparse(edge_output_temp_path, ("start", "end")):
             if xml_event == "start" and elem.tag == "interval":
                 current_interval_begin = float(elem.attrib["begin"])
-            elif xml_event == "end" and elem.tag == "edge" and current_interval_begin is not None:
+            elif (
+                xml_event == "end"
+                and elem.tag == "edge"
+                and current_interval_begin is not None
+            ):
                 row = {
                     "interval_begin": current_interval_begin,
                     "edge_id": elem.attrib["id"],
@@ -45,13 +78,21 @@ def postprocess_handler(event: dict, context: Any):
                 rows.append(row)
 
         df = pl.DataFrame(rows)
-        parquet_temp_path = pathlib.Path("tmp/edges.parquet")
         df.lazy().sort(["interval_begin", "edge_id"]).sink_parquet(parquet_temp_path)
 
-        if url.startswith("s3://"):
-            pass
+        if output_prefix.startswith("s3://"):
+            bucket, prefix = parse_s3(output_prefix)
+
+            s3.upload_file(str(parquet_temp_path), bucket, f"{prefix}/edges.parquet")
+
+            return {
+                "parquet_url": f"s3://{bucket}/{prefix}/edges.parquet",
+                "rows": df.height,
+            }
         else:
-            return {"parquet_url": str(parquet_temp_path), "rows": df.height}
+            shutil.copy(parquet_temp_path, parquet_final_path)
+
+            return {"parquet_url": str(parquet_final_path), "rows": df.height}
 
     except Exception as e:
         return {
@@ -60,7 +101,8 @@ def postprocess_handler(event: dict, context: Any):
         }
     finally:
         try:
-            pass
+            edge_output_temp_path.unlink(missing_ok=True)
+            parquet_temp_path.unlink(missing_ok=True)
         except:
             pass
 
