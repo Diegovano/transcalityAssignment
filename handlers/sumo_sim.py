@@ -4,25 +4,8 @@ import zipfile
 import shutil
 import subprocess
 import traceback
-import boto3
-import os
+from ..s3helper import s3, parse_s3, TMP
 from typing import TypedDict, Any
-from urllib.parse import urlparse
-
-s3 = boto3.client("s3")
-
-
-def parse_s3(url: str):
-    assert url.startswith("s3://")
-    p = urlparse(url)
-    return p.netloc, p.path.lstrip("/")
-
-
-IS_LAMBDA = "AWS_LAMBDA_FUNCTION_NAME" in os.environ
-
-TMP = pathlib.Path("/tmp") if IS_LAMBDA else pathlib.Path("tmp")
-TMP.mkdir(exist_ok=True)
-
 
 class SumoSimEvent(TypedDict):
     scenario_zip_url: str
