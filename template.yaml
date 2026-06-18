@@ -1,37 +1,90 @@
 Transform: AWS::Serverless-2016-10-31
 Resources:
+  Metadata:
+    Dockerfile: Dockerfile
 
   SumosimFunction:
     Type: AWS::Serverless::Function
     Properties:
+      PackageType: Image
       FunctionName: intern-diego-van-overberghe-sumo-sim
-      CodeUri: handlers/
-      Handler: sumo_sim.sumo_sim_handler
-      Runtime: python3.11
+      ImageConfig:
+        Command:
+          - sumo_sim.sumo_sim_handler
+      Policies:
+      - Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:GetObject
+            Resource:
+              - arn:aws:s3:::transcality-intern/shared/*
+          - Effect: Allow
+            Action:
+              - s3:PutObject
+            Resource:
+              - arn:aws:s3:::transcality-intern/intern-diego-van-overberghe/*
     
   PostprocessFunction:
     Type: AWS::Serverless::Function
     Properties:
+      PackageType: Image
       FunctionName: intern-diego-van-overberghe-postprocess
-      CodeUri: handlers/
-      Handler: postprocess.postprocess_handler
-      Runtime: python3.11
+      ImageConfig:
+        Command:
+          - postprocess.postprocess_handler
+      Policies:
+      - Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:GetObject
+            Resource:
+              - arn:aws:s3:::transcality-intern/intern-diego-van-overberghe/*
+          - Effect: Allow
+            Action:
+              - s3:PutObject
+            Resource:
+              - arn:aws:s3:::transcality-intern/intern-diego-van-overberghe/*
 
   FinaliseFunction:
     Type: AWS::Serverless::Function
     Properties:
+      PackageType: Image
       FunctionName: intern-diego-van-overberghe-finalise
-      CodeUri: handlers/
-      Handler: finalise.finalise_handler
-      Runtime: python3.11
+      ImageConfig:
+        Command:
+          - finalise.finalise_header
+      Policies:
+      - Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:GetObject
+            Resource:
+              - arn:aws:s3:::transcality-intern/intern-diego-van-overberghe/*
+          - Effect: Allow
+            Action:
+              - s3:PutObject
+            Resource:
+              - arn:aws:s3:::transcality-intern/intern-diego-van-overberghe/*
 
   FailureFunction:
     Type: AWS::Serverless::Function
     Properties:
+      PackageType: Image
       FunctionName: intern-diego-van-overberghe-failure
-      CodeUri: handlers/
-      Handler: failure.failure_handler
-      Runtime: python3.11
+      ImageConfig:
+        Command:
+          - failure.failure_handler
+      Policies:
+      - Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:PutObject
+            Resource:
+              - arn:aws:s3:::transcality-intern/intern-diego-van-overberghe/*
 
   StateMachine:
     Type: AWS::Serverless::StateMachine
