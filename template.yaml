@@ -1,0 +1,132 @@
+Transform: AWS::Serverless-2016-10-31
+Resources:
+
+  SumosimFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: intern-diego-van-overberghe-sumo-sim
+      CodeUri: handlers/
+      Handler: sumo_sim.sumo_sim_handler
+      Runtime: python3.11
+    
+  PostprocessFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: intern-diego-van-overberghe-postprocess
+      CodeUri: handlers/
+      Handler: postprocess.postprocess_handler
+      Runtime: python3.11
+
+  FinaliseFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: intern-diego-van-overberghe-finalise
+      CodeUri: handlers/
+      Handler: finalise.finalise_handler
+      Runtime: python3.11
+
+  FailureFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: intern-diego-van-overberghe-failure
+      CodeUri: handlers/
+      Handler: failure.failure_handler
+      Runtime: python3.11
+
+  StateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: intern-diego-van-overberghe-pipeline
+      Definition:
+        StartsAt: "SumoSimState"
+        States:
+          SumoSimState:
+            Type: Task
+            Resource: arn:aws:states:::lambda:invoke
+            Parameters:
+              FunctionName: !GetAtt SumosimFunction.Arn
+              Payload.$: "$"
+            ResultPath: "$.simulation"
+            Retry:
+              - ErrorEquals: ["States.TaskFailed"]
+                IntervalSeconds: 2
+                BackoffRate: 2.0
+                MaxAttempts: 2
+            Catch:
+              - ErrorEquals: ["States.ALL"]
+                ResultPath: "$.error"
+                Next: FailureState
+            Next: PostprocessState
+
+          PostprocessState:
+            Type: Task
+            Resource: arn:aws:states:::lambda:invoke
+            Parameters:
+              FunctionName: !GetAtt PostprocessFunction.Arn
+              Payload:
+                edge_output_url.$: "$.simulation.Payload.edge_output_url"
+            ResultPath: "$.postprocess"
+            Retry:
+              - ErrorEquals: ["States.TaskFailed"]
+                IntervalSeconds: 2
+                BackoffRate: 2.0
+                MaxAttempts: 2
+            Catch:
+              - ErrorEquals: ["States.ALL"]
+                ResultPath: "$.error"
+                Next: FailureState
+            Next: FinaliseState
+
+          FinaliseState:
+            Type: Task
+            Resource: arn:aws:states:::lambda:invoke
+            Parameters:
+              FunctionName: !GetAtt FinaliseFunction.Arn
+              Payload:
+                parquet_url.$: "$.postprocess.Payload.parquet_url"
+            ResultPath: "$.finalise"
+            Retry:
+              - ErrorEquals: ["States.TaskFailed"]
+                IntervalSeconds: 2
+                BackoffRate: 2.0
+                MaxAttempts: 2
+            Catch:
+              - ErrorEquals: ["States.ALL"]
+                ResultPath: "$.error"
+                Next: FailureState
+            End: true
+
+          FailureState:
+            Type: Task
+            Resource: arn:aws:states:::lambda:invoke
+            Parameters:
+              FunctionName: !GetAtt FailureFunction.Arn
+              Payload:
+                execution_id.$: "$$.Execution.Id"
+                error.$: "$.Error"
+                cause.$: "$.Cause"
+
+            ResultPath: "$.failure"
+            Retry:
+              - ErrorEquals: ["States.TaskFailed"]
+                IntervalSeconds: 2
+                BackoffRate: 2.0
+                MaxAttempts: 2
+            End: true
+
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: "*"
+
+Outputs:
+  StateMachineArn:
+    Value: !Ref StateMachine
+
+  SumosimArn:
+    Value: !GetAtt SumosimFunction.Arn
+
+  PostprocessArn:
+    Value: !GetAtt PostprocessFunction.Arn
+
+  FinaliseArn:
+    Value: !GetAtt FinaliseFunction.Arn
