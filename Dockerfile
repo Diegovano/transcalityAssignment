@@ -18,6 +18,7 @@ COPY --from="sumo-builder" /sumo-libs/ /usr/lib64/
 COPY --from="sumo-builder" /usr/bin/sumo /usr/bin/netconvert /usr/bin/duarouter /usr/bin/
 
 COPY handlers/*  /var/task/
+COPY s3helper.py /var/task/
 COPY test.zip /var/task
 RUN mkdir /var/task/tmp
 RUN mkdir /var/task/out
