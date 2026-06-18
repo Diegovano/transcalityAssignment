@@ -1,63 +1,80 @@
 import json
-import re
 import pathlib
-import zipfile
 import shutil
 import polars as pl
-import xml.etree.ElementTree as ET
 import traceback
+from ..s3helper import s3, parse_s3, TMP
 from typing import TypedDict, Any
 
 class FinaliseEvent(TypedDict):
     parquet_url: str
+    output_prefix: str
 
-def finalise_handler(event: dict, context: Any):
+
+def finalise_handler(event: dict, context: Any) -> dict:
+    parquet_temp_path = TMP / "edges.parquet"
+
+    finalise_event: FinaliseEvent = event
+    assert "parquet_url" in finalise_event
+    assert "output_prefix" in finalise_event
+
+    url = finalise_event["parquet_url"]
+    output_prefix = finalise_event["output_prefix"]
+
+    if not output_prefix.startswith("s3://"):
+        output_path = pathlib.Path(output_prefix)
+        output_path.mkdir(parents=True, exist_ok=True)
+        summary_json_final_path = output_path / "summary.json"
+
     try:
-        finalise_event: FinaliseEvent = json.loads(event)
-        assert "parquet_url" in finalise_event
-
-        url = finalise_event["parquet_url"]
-        parquet_temp_path = pathlib.Path("tmp/edges.parquet")
-        
         if url.startswith("s3://"):
-            pass
+            bucket, key = parse_s3(url)
+            s3.download_file(bucket, key, str(parquet_temp_path))
         else:
-            original_path = pathlib.Path(url)
-            shutil.copy(original_path, parquet_temp_path)
+            shutil.copy(pathlib.Path(url), parquet_temp_path)
 
         df = pl.scan_parquet(parquet_temp_path)
         max_flow_top_10_lf = (
-            df
-            .group_by("edge_id")
+            df.group_by("edge_id")
             .agg(pl.col("flow").sum().alias("total_flow"))
             .top_k(k=10, by="total_flow")
         )
-        global_mean_speed_lf = (
-            df
-            .select(pl.col("speed").mean().alias("global_mean_speed"))
+        global_mean_speed_lf = df.select(
+            pl.col("speed").mean().alias("global_mean_speed")
         )
-        total_sim_time_lf = (
-            df
-            .select(pl.col("sampledSeconds").sum().alias("total_sim_time"))
+        total_sim_time_lf = df.select(
+            pl.col("sampledSeconds").sum().alias("total_sim_time")
         )
 
-        max_flow_top_10, global_mean_speed, total_sim_time = (
-            pl.collect_all([
-                max_flow_top_10_lf,
-                global_mean_speed_lf,
-                total_sim_time_lf
-            ])
+        max_flow_top_10, global_mean_speed, total_sim_time = pl.collect_all(
+            [max_flow_top_10_lf, global_mean_speed_lf, total_sim_time_lf]
         )
+
+        summary_json = json.dumps({
+                "top_10_busiest_edges_by_total_flow": max_flow_top_10[
+                    "edge_id"
+                ].to_list(),
+                "global_mean_speed": global_mean_speed.item(),
+                "total_simulated_veh_time": total_sim_time.item(),
+            })
 
         if url.startswith("s3://"):
-            pass
-        else:
-            return json.dumps({
+            bucket, prefix = parse_s3(output_prefix)
+
+            s3.put_object(Bucket=bucket, Key=f"{prefix}/summary.json", Body=summary_json.encode())
+
+            return {
                 "status": "success",
-                "top_10_busiest_edges_by_total_flow": max_flow_top_10.collect()["edge_id"].to_list(),
-                "global_mean_speed": global_mean_speed.collect().item(),
-                "total_simulated_veh_time": total_sim_time.collect().item()
-            })
+                "summary_url": f"s3://{bucket}/{prefix}/summary.json"
+            }
+        else:
+            with open(summary_json_final_path, "w", encoding="utf-8") as f:
+                f.write(summary_json)
+
+            return {
+                "status": "success",
+                "summary_url": str(summary_json_final_path)
+            }
 
     except Exception as e:
         return {
@@ -66,7 +83,7 @@ def finalise_handler(event: dict, context: Any):
         }
     finally:
         try:
-            pass
+            parquet_temp_path.unlink(missing_ok=True)
         except:
             pass
 
