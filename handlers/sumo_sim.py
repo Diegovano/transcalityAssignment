@@ -4,7 +4,7 @@ import zipfile
 import shutil
 import subprocess
 import traceback
-from ..s3helper import s3, parse_s3, TMP
+from s3helper import s3, parse_s3, TMP
 from typing import TypedDict, Any
 
 class SumoSimEvent(TypedDict):

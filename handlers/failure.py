@@ -1,6 +1,6 @@
 import json
 import datetime
-from ..s3helper import s3
+from s3helper import s3
 from typing import TypedDict, Any
 
 BUCKET = "transcality-intern"
@@ -25,7 +25,6 @@ def failure_handler(event: dict, context: Any) -> dict:
         "timestamp": datetime.utcnow().isoformat(),
         "error": {
             "type": error.get("Error"),
-            "cause": error.get("Cause"),
         } if isinstance(error, dict) else str(error),
     }
 

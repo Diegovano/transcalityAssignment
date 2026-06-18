@@ -4,7 +4,7 @@ import shutil
 import polars as pl
 import xml.etree.ElementTree as ET
 import traceback
-from ..s3helper import s3, parse_s3, TMP
+from s3helper import s3, parse_s3, TMP
 from typing import TypedDict, Any
 from urllib.parse import urlparse
 
@@ -56,6 +56,7 @@ def postprocess_handler(event: dict, context: Any):
                     "density": float(elem.attrib["density"]),
                     "flow": float(elem.attrib["flow"]),
                     "waiting_time": float(elem.attrib["waitingTime"]),
+                    "sampled_seconds": float(elem.attrib["sampledSeconds"])
                 }
                 elem.clear()
 
@@ -70,13 +71,18 @@ def postprocess_handler(event: dict, context: Any):
             s3.upload_file(str(parquet_temp_path), bucket, f"{prefix}/edges.parquet")
 
             return {
+                "status": "success",
                 "parquet_url": f"s3://{bucket}/{prefix}/edges.parquet",
                 "rows": df.height,
             }
         else:
             shutil.copy(parquet_temp_path, parquet_final_path)
 
-            return {"parquet_url": str(parquet_final_path), "rows": df.height}
+            return {
+                "status": "success",
+                "parquet_url": str(parquet_final_path),
+                "rows": df.height
+            }
 
     except Exception as e:
         return {

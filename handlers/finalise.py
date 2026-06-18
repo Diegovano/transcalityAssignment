@@ -3,7 +3,7 @@ import pathlib
 import shutil
 import polars as pl
 import traceback
-from ..s3helper import s3, parse_s3, TMP
+from s3helper import s3, parse_s3, TMP
 from typing import TypedDict, Any
 
 class FinaliseEvent(TypedDict):
@@ -43,7 +43,7 @@ def finalise_handler(event: dict, context: Any) -> dict:
             pl.col("speed").mean().alias("global_mean_speed")
         )
         total_sim_time_lf = df.select(
-            pl.col("sampledSeconds").sum().alias("total_sim_time")
+            pl.col("sampled_seconds").sum().alias("total_sim_time")
         )
 
         max_flow_top_10, global_mean_speed, total_sim_time = pl.collect_all(
@@ -58,7 +58,7 @@ def finalise_handler(event: dict, context: Any) -> dict:
                 "total_simulated_veh_time": total_sim_time.item(),
             })
 
-        if url.startswith("s3://"):
+        if output_prefix.startswith("s3://"):
             bucket, prefix = parse_s3(output_prefix)
 
             s3.put_object(Bucket=bucket, Key=f"{prefix}/summary.json", Body=summary_json.encode())

@@ -1,2 +1,5 @@
 intern_assignment.md
 .aws-sam
+**/**/__pycache__
+test_*
+tmp

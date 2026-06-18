@@ -45,10 +45,12 @@ Resources:
             Resource: arn:aws:states:::lambda:invoke
             Parameters:
               FunctionName: !GetAtt SumosimFunction.Arn
-              Payload.$: "$"
-            ResultPath: "$.simulation"
+              Payload:
+                scenario_zip_url.$: "$.scenario_zip_url"
+                output_prefix.$: "$.output_prefix"
+            OutputPath: "$.Payload"
             Retry:
-              - ErrorEquals: ["States.TaskFailed"]
+              - ErrorEquals: ["States.ALL"]
                 IntervalSeconds: 2
                 BackoffRate: 2.0
                 MaxAttempts: 2
@@ -64,10 +66,11 @@ Resources:
             Parameters:
               FunctionName: !GetAtt PostprocessFunction.Arn
               Payload:
-                edge_output_url.$: "$.simulation.Payload.edge_output_url"
-            ResultPath: "$.postprocess"
+                edge_output_url.$: "$.edge_output_url"
+                output_prefix.$: "$.output_prefix"
+            OutputPath: "$.Payload"
             Retry:
-              - ErrorEquals: ["States.TaskFailed"]
+              - ErrorEquals: ["States.ALL"]
                 IntervalSeconds: 2
                 BackoffRate: 2.0
                 MaxAttempts: 2
@@ -83,10 +86,11 @@ Resources:
             Parameters:
               FunctionName: !GetAtt FinaliseFunction.Arn
               Payload:
-                parquet_url.$: "$.postprocess.Payload.parquet_url"
-            ResultPath: "$.finalise"
+                parquet_url.$: "$.parquet_url"
+                output_prefix.$: "$.output_prefix"
+            OutputPath: "$.Payload"
             Retry:
-              - ErrorEquals: ["States.TaskFailed"]
+              - ErrorEquals: ["States.ALL"]
                 IntervalSeconds: 2
                 BackoffRate: 2.0
                 MaxAttempts: 2
@@ -103,12 +107,11 @@ Resources:
               FunctionName: !GetAtt FailureFunction.Arn
               Payload:
                 execution_id.$: "$$.Execution.Id"
-                error.$: "$.Error"
-                cause.$: "$.Cause"
+                error.$: "$.error"
 
             ResultPath: "$.failure"
             Retry:
-              - ErrorEquals: ["States.TaskFailed"]
+              - ErrorEquals: ["States.ALL"]
                 IntervalSeconds: 2
                 BackoffRate: 2.0
                 MaxAttempts: 2
