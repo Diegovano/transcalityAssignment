@@ -46,7 +46,7 @@ def sumo_sim_handler(event: dict, context: Any):
     assert url.endswith(".zip")
 
     # "final" paths are only used for local testing
-    if not output_path.startswith("s3://"):
+    if not output_prefix.startswith("s3://"):
         output_path = pathlib.Path(output_prefix)
         output_path.mkdir(parents=True, exist_ok=True)
         edge_output_final_path = output_path / "edge.xml"
