@@ -16,7 +16,12 @@ RUN ldd /usr/bin/sumo /usr/bin/netconvert \
 FROM public.ecr.aws/lambda/python:3.11 AS base
 COPY --from="sumo-builder" /sumo-libs/ /usr/lib64/
 COPY --from="sumo-builder" /usr/bin/sumo /usr/bin/netconvert /usr/bin/duarouter /usr/bin/
+# RUN pip install --no-cache-dir pytest
+RUN pip install --no-cache-dir polars
 
-COPY handlers/*  /var/task/
+RUN mkdir handlers
+COPY handlers/*  /var/task/handlers/
 COPY s3helper.py /var/task/
-COPY test.zip /var/task
+RUN mkdir test_data
+COPY test_data/test.zip /var/task/test_data
+COPY test /var/task/test
