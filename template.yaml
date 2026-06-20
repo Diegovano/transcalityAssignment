@@ -1,97 +1,159 @@
 Transform: AWS::Serverless-2016-10-31
+Metadata:
+  Dockerfile: Dockerfile
 Resources:
-  Metadata:
-    Dockerfile: Dockerfile
+
+  SumosimFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: intern-diego-van-overberghe-sumo-sim-role  # explicit, boundary-compliant
+      PermissionsBoundary: arn:aws:iam::154794777636:policy/InternSandboxBoundary
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: s3-access
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: arn:aws:s3:::transcality-intern/shared/*
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: arn:aws:s3:::transcality-intern/intern-diego-van-overberghe/*
+
+  PostprocessFinaliseFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: intern-diego-van-overberghe-postprocess-finalise-role
+      PermissionsBoundary: arn:aws:iam::154794777636:policy/InternSandboxBoundary
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: s3-access
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: arn:aws:s3:::transcality-intern/intern-diego-van-overberghe/*
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: arn:aws:s3:::transcality-intern/intern-diego-van-overberghe/*
+
+  FailureFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: intern-diego-van-overberghe-failure-role
+      PermissionsBoundary: arn:aws:iam::154794777636:policy/InternSandboxBoundary
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: s3-access
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: arn:aws:s3:::transcality-intern/intern-diego-van-overberghe/*
+
+  StateMachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: intern-diego-van-overberghe-statemachine-role
+      PermissionsBoundary: arn:aws:iam::154794777636:policy/InternSandboxBoundary
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: states.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: invoke-lambdas
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource:
+                  - !GetAtt SumosimFunction.Arn
+                  - !GetAtt PostprocessFunction.Arn
+                  - !GetAtt FinaliseFunction.Arn
+                  - !GetAtt FailureFunction.Arn
 
   SumosimFunction:
     Type: AWS::Serverless::Function
     Properties:
+      Role: !GetAtt SumosimFunctionRole.Arn
       PackageType: Image
+      ImageUri: 154794777636.dkr.ecr.eu-central-2.amazonaws.com/intern-diego-van-overberghe-shared:latest
       FunctionName: intern-diego-van-overberghe-sumo-sim
       ImageConfig:
         Command:
-          - sumo_sim.sumo_sim_handler
-      Policies:
-      - Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Action:
-              - s3:GetObject
-            Resource:
-              - arn:aws:s3:::transcality-intern/shared/*
-          - Effect: Allow
-            Action:
-              - s3:PutObject
-            Resource:
-              - arn:aws:s3:::transcality-intern/intern-diego-van-overberghe/*
+          - handlers.sumo_sim.sumo_sim_handler
     
   PostprocessFunction:
     Type: AWS::Serverless::Function
     Properties:
+      Role: !GetAtt PostprocessFinaliseFunctionRole.Arn
       PackageType: Image
+      ImageUri: 154794777636.dkr.ecr.eu-central-2.amazonaws.com/intern-diego-van-overberghe-shared:latest
       FunctionName: intern-diego-van-overberghe-postprocess
       ImageConfig:
         Command:
-          - postprocess.postprocess_handler
-      Policies:
-      - Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Action:
-              - s3:GetObject
-            Resource:
-              - arn:aws:s3:::transcality-intern/intern-diego-van-overberghe/*
-          - Effect: Allow
-            Action:
-              - s3:PutObject
-            Resource:
-              - arn:aws:s3:::transcality-intern/intern-diego-van-overberghe/*
+          - handlers.postprocess.postprocess_handler
 
   FinaliseFunction:
     Type: AWS::Serverless::Function
     Properties:
+      Role: !GetAtt PostprocessFinaliseFunctionRole.Arn
       PackageType: Image
+      ImageUri: 154794777636.dkr.ecr.eu-central-2.amazonaws.com/intern-diego-van-overberghe-shared:latest
       FunctionName: intern-diego-van-overberghe-finalise
       ImageConfig:
         Command:
-          - finalise.finalise_header
-      Policies:
-      - Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Action:
-              - s3:GetObject
-            Resource:
-              - arn:aws:s3:::transcality-intern/intern-diego-van-overberghe/*
-          - Effect: Allow
-            Action:
-              - s3:PutObject
-            Resource:
-              - arn:aws:s3:::transcality-intern/intern-diego-van-overberghe/*
+          - handlers.finalise.finalise_handler
 
   FailureFunction:
     Type: AWS::Serverless::Function
     Properties:
+      Role: !GetAtt FailureFunctionRole.Arn
       PackageType: Image
+      ImageUri: 154794777636.dkr.ecr.eu-central-2.amazonaws.com/intern-diego-van-overberghe-shared:latest
       FunctionName: intern-diego-van-overberghe-failure
       ImageConfig:
         Command:
-          - failure.failure_handler
-      Policies:
-      - Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Action:
-              - s3:PutObject
-            Resource:
-              - arn:aws:s3:::transcality-intern/intern-diego-van-overberghe/*
+          - handlers.failure.failure_handler
 
   StateMachine:
     Type: AWS::Serverless::StateMachine
     Properties:
+      Role: !GetAtt StateMachineRole.Arn
       Name: intern-diego-van-overberghe-pipeline
       Definition:
-        StartsAt: "SumoSimState"
+        StartAt: "SumoSimState"
         States:
           SumoSimState:
             Type: Task
@@ -169,10 +231,6 @@ Resources:
                 BackoffRate: 2.0
                 MaxAttempts: 2
             End: true
-
-      Policies:
-        - LambdaInvokePolicy:
-            FunctionName: "*"
 
 Outputs:
   StateMachineArn:
