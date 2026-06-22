@@ -1,8 +1,13 @@
 Transform: AWS::Serverless-2016-10-31
 Metadata:
   Dockerfile: Dockerfile
-Resources:
 
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+
+Resources:
   SumosimFunctionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -252,3 +257,6 @@ Outputs:
 
   FinaliseArn:
     Value: !GetAtt FinaliseFunction.Arn
+
+  S3OutputPrefix:
+    Value: "s3://transcality-intern/diego-van-overberghe/"
