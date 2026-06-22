@@ -25,6 +25,7 @@ def failure_handler(event: dict, context: Any) -> dict:
         "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "error": {
             "type": error.get("Error"),
+            "cause": error.get("Cause"),
         } if isinstance(error, dict) else str(error),
     }
 
