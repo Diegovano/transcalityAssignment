@@ -110,7 +110,7 @@ Resources:
       MemorySize: 1024
       Role: !GetAtt SumosimFunctionRole.Arn
       PackageType: Image
-      ImageUri: 154794777636.dkr.ecr.eu-central-2.amazonaws.com/intern-diego-van-overberghe-shared:latest
+      ImageUri: IMAGE_URI_PLACEHOLDER
       FunctionName: intern-diego-van-overberghe-sumo-sim
       ImageConfig:
         Command:
@@ -123,7 +123,7 @@ Resources:
       MemorySize: 512
       Role: !GetAtt PostprocessFinaliseFunctionRole.Arn
       PackageType: Image
-      ImageUri: 154794777636.dkr.ecr.eu-central-2.amazonaws.com/intern-diego-van-overberghe-shared:latest
+      ImageUri: IMAGE_URI_PLACEHOLDER
       FunctionName: intern-diego-van-overberghe-postprocess
       ImageConfig:
         Command:
@@ -136,7 +136,7 @@ Resources:
       MemorySize: 512
       Role: !GetAtt PostprocessFinaliseFunctionRole.Arn
       PackageType: Image
-      ImageUri: 154794777636.dkr.ecr.eu-central-2.amazonaws.com/intern-diego-van-overberghe-shared:latest
+      ImageUri: IMAGE_URI_PLACEHOLDER
       FunctionName: intern-diego-van-overberghe-finalise
       ImageConfig:
         Command:
@@ -149,7 +149,7 @@ Resources:
       MemorySize: 256
       Role: !GetAtt FailureFunctionRole.Arn
       PackageType: Image
-      ImageUri: 154794777636.dkr.ecr.eu-central-2.amazonaws.com/intern-diego-van-overberghe-shared:latest
+      ImageUri: IMAGE_URI_PLACEHOLDER
       FunctionName: intern-diego-van-overberghe-failure
       ImageConfig:
         Command:
