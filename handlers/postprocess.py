@@ -74,7 +74,6 @@ def postprocess_handler(event: dict, context: Any):
                 "status": "success",
                 "parquet_url": f"s3://{bucket}/{prefix}/edges.parquet",
                 "rows": df.height,
-                "output_prefix": output_prefix,
             }
         else:
             shutil.copy(parquet_temp_path, parquet_final_path)
@@ -83,7 +82,6 @@ def postprocess_handler(event: dict, context: Any):
                 "status": "success",
                 "parquet_url": str(parquet_final_path),
                 "rows": df.height,
-                "output_prefix": output_prefix,
             }
 
     except Exception as e:

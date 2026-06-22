@@ -92,7 +92,6 @@ def sumo_sim_handler(event: dict, context: Any):
                 "edge_output_url": f"s3://{bucket}/{prefix}/edge.xml",
                 "summary_url": f"s3://{bucket}/{prefix}/summary.xml",
                 "vehicle_count": vehicle_count,
-                "output_prefix": output_prefix,
             }
 
         else:
@@ -104,7 +103,6 @@ def sumo_sim_handler(event: dict, context: Any):
                 "edge_output_url": str(edge_output_final_path),
                 "summary_url": str(summary_output_final_path),
                 "vehicle_count": vehicle_count,
-                "output_prefix": output_prefix,
             }
 
     except Exception as e:

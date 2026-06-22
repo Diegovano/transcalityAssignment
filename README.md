@@ -28,6 +28,8 @@ I struggled with running `sam build`, then `sam deploy`, as `sam build` was sayi
 
 The `deploy.sh` script is idempotent only if changes are committed. This is because of how images are tagged with a commit hash rather than something like a timestamp, or uuid, which would be essentially unique on each deploy. Without a new commit, `sam` will say "no changes to deploy". 
 
+I am retrying on any `States.ALL` failure, not just `States.TaskFailure`, so more errors are caught. Its a superset of TaskFailed, so I hope it is fine.
+
 What I would do with more time:
 
 If I had more time I would make the Dockerfile a little more extentible. Specifically, to add more sumo-tools for instance, we first need to check if its a dynamic executable, in which case we need to copy libs. Otherwise copying the executable is enough.

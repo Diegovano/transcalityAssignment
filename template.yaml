@@ -171,7 +171,7 @@ Resources:
               Payload:
                 scenario_zip_url.$: "$.scenario_zip_url"
                 output_prefix.$: "$.output_prefix"
-            OutputPath: "$.Payload"
+            ResultPath: "$.sim_result"
             Retry:
               - ErrorEquals: ["States.ALL"]
                 IntervalSeconds: 2
@@ -189,9 +189,9 @@ Resources:
             Parameters:
               FunctionName: !GetAtt PostprocessFunction.Arn
               Payload:
-                edge_output_url.$: "$.edge_output_url"
+                edge_output_url.$: "$.sim_result.Payload.edge_output_url"
                 output_prefix.$: "$.output_prefix"
-            OutputPath: "$.Payload"
+            ResultPath: "$.postprocess_result"
             Retry:
               - ErrorEquals: ["States.ALL"]
                 IntervalSeconds: 2
@@ -209,9 +209,9 @@ Resources:
             Parameters:
               FunctionName: !GetAtt FinaliseFunction.Arn
               Payload:
-                parquet_url.$: "$.parquet_url"
+                parquet_url.$: "$.postprocess_result.Payload.parquet_url"
                 output_prefix.$: "$.output_prefix"
-            OutputPath: "$.Payload"
+            ResultPath: "$.finalise_result"
             Retry:
               - ErrorEquals: ["States.ALL"]
                 IntervalSeconds: 2
