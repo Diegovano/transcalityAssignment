@@ -1,3 +1,19 @@
+Usage Guide:
+
+Follow AWS Setup instructions from the `intern_assignment.md`
+
+run `deploy.sh` to build the image, upload it to ECR, deploy the lambdas and the state machine.
+
+run `aws stepfunctions start-execution \`
+    `--state-machine-arn arn:aws:states:eu-central-2:154794777636:stateMachine:intern-diego-van-overberghe-pipeline \`
+    `--input '{"scenario_zip_url": "s3://transcality-intern/shared/small-scenario.zip", "output_prefix": "s3://transcality-intern/diego-van-overberghe/run-n"}'`
+
+In the output of the previous command, locate the execution ARN. Copy this and use it to query the state of the execution:
+
+run `aws stepfunctions describe-execution --execution-arn arn:aws:states:eu-central.....`
+
+To tear down, run `sam delete --stack-name intern-diego-van-overberghe-pipeline-stack`
+
 Assumptions:
 
 You are happy me not checking GPG keys during the sumo-builder installation of sumo
@@ -8,7 +24,9 @@ Assuming sumo only produces summary.xml and edge.xml. Other files not cleared du
 
 Assuming that top 10 busiest does not need to be sorted
 
-Assuming that the output prefix is passed to all other pipeline stages, so all artefacts are stored together.
+I struggled with running `sam build`, then `sam deploy`, as `sam build` was saying that docker was not running even though it was. I therefore decided to build the image myself and upload it to ECR. The deploy script handles setting the URI of the image identically on each deploy. As a result, all three functions share the same repo.
+
+The `deploy.sh` script is idempotent only if changes are committed. This is because of how images are tagged with a commit hash rather than something like a timestamp, or uuid, which would be essentially unique on each deploy. Without a new commit, `sam` will say "no changes to deploy". 
 
 What I would do with more time:
 
