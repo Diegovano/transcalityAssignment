@@ -77,10 +77,7 @@ def finalise_handler(event: dict, context: Any) -> dict:
             }
 
     except Exception as e:
-        return {
-            "status": "failed",
-            "exception": f"{e}\n{traceback.format_exc()}",  # I don't think an Exception is serialisable
-        }
+        raise RuntimeError(f"{e}\n{traceback.format_exc()}") from e
     finally:
         try:
             parquet_temp_path.unlink(missing_ok=True)

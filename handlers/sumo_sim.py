@@ -92,6 +92,7 @@ def sumo_sim_handler(event: dict, context: Any):
                 "edge_output_url": f"s3://{bucket}/{prefix}/edge.xml",
                 "summary_url": f"s3://{bucket}/{prefix}/summary.xml",
                 "vehicle_count": vehicle_count,
+                "output_prefix": output_prefix,
             }
 
         else:
@@ -103,13 +104,11 @@ def sumo_sim_handler(event: dict, context: Any):
                 "edge_output_url": str(edge_output_final_path),
                 "summary_url": str(summary_output_final_path),
                 "vehicle_count": vehicle_count,
+                "output_prefix": output_prefix,
             }
 
     except Exception as e:
-        return {
-            "status": "failed",
-            "exception": f"{e}\n{traceback.format_exc()}",  # I don't think an Exception is serialisable
-        }
+        raise RuntimeError(f"{e}\n{traceback.format_exc()}") from e
     finally:
         try:
             shutil.rmtree(scenario_temp_path, ignore_errors=True)
