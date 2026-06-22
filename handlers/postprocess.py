@@ -14,6 +14,10 @@ class PostprocessEvent(TypedDict):
 
 
 def postprocess_handler(event: dict, context: Any):
+    """CloudWatch shows MaxMemoryUsed of ~148 MB against
+    an allocation of 512 MB. Could safely be reduced to
+    256 MB. First init time is high (~6s) later invocations 
+    run in ~300-450ms"""
     edge_output_temp_path = TMP / "edge_output.xml"
     parquet_temp_path = TMP / "edges.parquet"
 

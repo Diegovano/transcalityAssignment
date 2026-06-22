@@ -10,6 +10,10 @@ class FailureEvent(TypedDict):
     error: Any
 
 def failure_handler(event: dict, context: Any) -> dict:
+    """CloudWatch shows MaxMemoryUsed of ~91 MB against
+    an allocation of 256 MB. Could safely be reduced to
+    128 MB. Invocations complete in ~1-2ms as the
+    handler only serialises JSON and writes to S3."""
     failure_event: FailureEvent = event
 
     execution_id = (

@@ -13,6 +13,23 @@ class SumoSimEvent(TypedDict):
 
 
 def sumo_sim_handler(event: dict, context: Any):
+    """This lambda failed with the default 
+    AWS settings. (3s timeout 128 MB mem)
+    I then greatly increased these, to
+    300s timeout and 1024 MB of memory.
+    CloudWatch indicates approximately 7s 
+    execution time, and approx 210 MB mem.
+    The failure can therefore be linked to 
+    the timeout and the higher mem usage.
+    Although we could optimise, it might 
+    be advisable to not for example lower 
+    MaxMem to 256 MB, which could still 
+    run the small scenario. Leaving a higher 
+    allowance accommodates potentially 
+    larger scenarios. This is true for other 
+    lambdas also, so I will not repeat this.
+    At the same time, I premeptively increased 
+    other lambdas' allowances."""
     edge_output_temp_path = TMP / "edge.xml"
     summary_output_temp_path = TMP / "summary.xml"
 

@@ -12,6 +12,10 @@ class FinaliseEvent(TypedDict):
 
 
 def finalise_handler(event: dict, context: Any) -> dict:
+    """CloudWatch shows MaxMemoryUsed of ~150 MB against
+    an allocation of 512 MB. Could safely be reduced to
+    256 MB. First init time ~800ms-1.3s. 
+    Later invocations run in ~400-550ms."""
     parquet_temp_path = TMP / "edges.parquet"
 
     finalise_event: FinaliseEvent = event
