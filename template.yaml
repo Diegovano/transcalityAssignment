@@ -27,7 +27,7 @@ Resources:
                 Resource: arn:aws:s3:::transcality-intern/shared/*
               - Effect: Allow
                 Action: s3:PutObject
-                Resource: arn:aws:s3:::transcality-intern/intern-diego-van-overberghe/*
+                Resource: arn:aws:s3:::transcality-intern/diego-van-overberghe/*
 
   PostprocessFinaliseFunctionRole:
     Type: AWS::IAM::Role
@@ -50,10 +50,10 @@ Resources:
             Statement:
               - Effect: Allow
                 Action: s3:GetObject
-                Resource: arn:aws:s3:::transcality-intern/intern-diego-van-overberghe/*
+                Resource: arn:aws:s3:::transcality-intern/diego-van-overberghe/*
               - Effect: Allow
                 Action: s3:PutObject
-                Resource: arn:aws:s3:::transcality-intern/intern-diego-van-overberghe/*
+                Resource: arn:aws:s3:::transcality-intern/diego-van-overberghe/*
 
   FailureFunctionRole:
     Type: AWS::IAM::Role
@@ -76,7 +76,7 @@ Resources:
             Statement:
               - Effect: Allow
                 Action: s3:PutObject
-                Resource: arn:aws:s3:::transcality-intern/intern-diego-van-overberghe/*
+                Resource: arn:aws:s3:::transcality-intern/diego-van-overberghe/*
 
   StateMachineRole:
     Type: AWS::IAM::Role
@@ -106,6 +106,8 @@ Resources:
   SumosimFunction:
     Type: AWS::Serverless::Function
     Properties:
+      Timeout: 300
+      MemorySize: 1024
       Role: !GetAtt SumosimFunctionRole.Arn
       PackageType: Image
       ImageUri: 154794777636.dkr.ecr.eu-central-2.amazonaws.com/intern-diego-van-overberghe-shared:latest
@@ -117,6 +119,8 @@ Resources:
   PostprocessFunction:
     Type: AWS::Serverless::Function
     Properties:
+      Timeout: 60
+      MemorySize: 512
       Role: !GetAtt PostprocessFinaliseFunctionRole.Arn
       PackageType: Image
       ImageUri: 154794777636.dkr.ecr.eu-central-2.amazonaws.com/intern-diego-van-overberghe-shared:latest
@@ -128,6 +132,8 @@ Resources:
   FinaliseFunction:
     Type: AWS::Serverless::Function
     Properties:
+      Timeout: 60
+      MemorySize: 512
       Role: !GetAtt PostprocessFinaliseFunctionRole.Arn
       PackageType: Image
       ImageUri: 154794777636.dkr.ecr.eu-central-2.amazonaws.com/intern-diego-van-overberghe-shared:latest
@@ -139,6 +145,8 @@ Resources:
   FailureFunction:
     Type: AWS::Serverless::Function
     Properties:
+      Timeout: 30
+      MemorySize: 256
       Role: !GetAtt FailureFunctionRole.Arn
       PackageType: Image
       ImageUri: 154794777636.dkr.ecr.eu-central-2.amazonaws.com/intern-diego-van-overberghe-shared:latest

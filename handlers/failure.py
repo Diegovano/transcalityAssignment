@@ -22,7 +22,7 @@ def failure_handler(event: dict, context: Any) -> dict:
 
     error_payload = {
         "execution_id": execution_id,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "error": {
             "type": error.get("Error"),
         } if isinstance(error, dict) else str(error),
