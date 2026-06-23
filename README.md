@@ -48,4 +48,40 @@ I am retrying on any `States.ALL` failure, not just `States.TaskFailed`, so more
 
 What I would do with more time:
 
-If I had more time I would make the Dockerfile a little more extensible. Specifically, to add more sumo-tools for instance, we first need to check if its a dynamic executable, in which case we need to copy libs. Otherwise copying the executable is enough.
+With more time I would definitely take a look at the fanout. SUMO sim will probably always be the main bottleneck, but it is not parallelisable.
+
+I would also investigate further why `sam build` is not working.
+
+I also encountered some errors that bypassed the Catch and so were not logged. I think most of these were issues with paths and not template syntax errors as `sam validate` succeeded.
+
+The IAM could be tightened by creating separate folders which each lambda is authorised to read/write from.
+
+Regarding memory right sizing, I would only minimise the memory according to the CloudWatch stats if the task were explicitly to minimise resources for this scenario. Otherwise it just makes the pipeline brittle for other inputs.
+
+I also feel there is repetition within the handlers which could maybe indicate we could create a handler "class" or similar. More specifically, this pattern repeats: temp paths, assert keys in event, final paths. Maybe worth refactoring?
+
+```py
+    edge_output_temp_path = TMP / "edge.xml"
+    summary_output_temp_path = TMP / "summary.xml"
+
+    scenario_zip_temp_path = TMP / "scenario.zip"
+    scenario_temp_path = TMP / "scenario"
+
+    sumo_sim_event: SumoSimEvent = event
+
+    assert "scenario_zip_url" in sumo_sim_event
+    assert "output_prefix" in sumo_sim_event
+
+    url = sumo_sim_event["scenario_zip_url"]
+    output_prefix = sumo_sim_event["output_prefix"]
+    assert url.endswith(".zip")
+
+    # "final" paths are only used for local testing
+    if not output_prefix.startswith("s3://"):
+        output_path = pathlib.Path(output_prefix)
+        output_path.mkdir(parents=True, exist_ok=True)
+        edge_output_final_path = output_path / "edge.xml"
+        summary_output_final_path = output_path / "summary.xml"
+```
+
+Finally, I would also try to make the Dockerfile a little more extensible. Specifically, to add more sumo-tools for instance, we first need to check if its a dynamic executable, in which case we need to copy libs. Otherwise copying the executable is enough.
