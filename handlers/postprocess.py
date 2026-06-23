@@ -45,6 +45,7 @@ def postprocess_handler(event: dict, context: Any):
         current_interval_begin: float | None = None
         rows: list[dict[str, str | float]] = []
 
+        # See note about exporting directly as .parquet in README
         for xml_event, elem in ET.iterparse(edge_output_temp_path, ("start", "end")):
             if xml_event == "start" and elem.tag == "interval":
                 current_interval_begin = float(elem.attrib["begin"])

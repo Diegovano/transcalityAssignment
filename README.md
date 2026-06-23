@@ -1,10 +1,10 @@
-Prerequisites used during development:
+## Prerequisites used during development:
 aws-cli/1.44.81 Python/3.14.5 Linux/7.0.12-arch1-1 botocore/1.42.91
 Docker version 29.5.2
 SAM CLI, version 1.138.0
 git version 2.54.0
 
-Usage Guide:
+## Usage Guide:
 
 Follow AWS Setup instructions from the `intern_assignment.md`
 
@@ -30,7 +30,7 @@ aws stepfunctions start-execution \
 
 To tear down, run `sam delete --stack-name intern-diego-van-overberghe-pipeline-stack`
 
-Assumptions:
+## Assumptions:
 
 You are happy me not checking GPG keys during the sumo-builder installation of sumo
 
@@ -46,11 +46,14 @@ The `deploy.sh` script is idempotent only if changes are committed. This is beca
 
 I am retrying on any `States.ALL` failure, not just `States.TaskFailed`, so more errors are caught. This is a superset and catches additional failure modes.
 
-What I would do with more time:
+## What I would do with more time:
 
 With more time I would definitely take a look at the fanout. SUMO sim will probably always be the main bottleneck, but it is not parallelisable.
 
 I would also investigate further why `sam build` is not working.
+
+After reading the SUMO documentation, I learnt you can actually output files directly as .parquet or .csv. This would make this whole .xml reading irrelevant, and it could be interesting to compare performance.
+
 
 I also encountered some errors that bypassed the Catch and so were not logged. I think most of these were issues with paths and not template syntax errors as `sam validate` succeeded.
 
