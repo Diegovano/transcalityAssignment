@@ -69,9 +69,9 @@ def sumo_sim_handler(event: dict, context: Any):
             "-c",
             str(sumocfg),
             "--edgedata-output",
-            str(TMP / "edge.xml"),
+            str(edge_output_temp_path),
             "--summary-output",
-            str(TMP / "summary.xml"),
+            str(summary_output_temp_path),
             "--no-warnings",
         ]
 
