@@ -40,6 +40,8 @@ Assuming sumo only produces summary.xml and edge.xml. Other files not cleared du
 
 Assuming that top 10 busiest does not need to be sorted
 
+Assuming that there will be no contrived name collisions, such as naming a scenario zip edges.xml.zip and trying to run the pipeline on that. The extracted folder name would then have the same name as the edges.xml output file, and who knows what would happen then!
+
 I struggled with running `sam build`, then `sam deploy`, as `sam build` was saying that docker was not running even though it was. I therefore decided to build the image myself and upload it to ECR. The deploy script handles setting the URI of the image identically on each deploy. As a result, all three functions share the same repo.
 
 The `deploy.sh` script is idempotent only if changes are committed. This is because of how images are tagged with a commit hash rather than something like a timestamp, or uuid, which would be essentially unique on each deploy. Without a new commit, `sam` will say "no changes to deploy". 
