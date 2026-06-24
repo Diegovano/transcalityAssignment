@@ -99,7 +99,7 @@ def sumo_sim_handler(event: dict, context: Any):
             raise
 
         total_time_and_total_vehicle_matches = (
-            re.search(".*#(\d+(?:\.\d+)?).*TOT (\d+) ACT", run.stdout)
+            re.search(".*#(\\d+(?:\\.\\d+)?).*TOT (\\d+) ACT", run.stdout)
         )
         total_time_and_total_vehicle_groups = (
             total_time_and_total_vehicle_matches.groups()

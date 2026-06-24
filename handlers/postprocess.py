@@ -82,7 +82,7 @@ def postprocess_handler(event: dict, context: Any):
                         "density": None,
                         "flow": None,
                         "waiting_time": None,
-                        "sampled_seconds": 0.0
+                        "sampled_seconds": None
                     }
                 elem.clear()
 
