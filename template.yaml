@@ -11,7 +11,7 @@ Resources:
   SumosimFunctionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: intern-diego-van-overberghe-sumo-sim-role  # explicit, boundary-compliant
+      RoleName: intern-diego-van-overberghe-sumo-sim-role-fanout  # explicit, boundary-compliant
       PermissionsBoundary: arn:aws:iam::154794777636:policy/InternSandboxBoundary
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
@@ -37,7 +37,7 @@ Resources:
   PostprocessFinaliseFunctionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: intern-diego-van-overberghe-postprocess-finalise-role
+      RoleName: intern-diego-van-overberghe-postprocess-finalise-role-fanout
       PermissionsBoundary: arn:aws:iam::154794777636:policy/InternSandboxBoundary
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
@@ -63,7 +63,7 @@ Resources:
   FailureFunctionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: intern-diego-van-overberghe-failure-role
+      RoleName: intern-diego-van-overberghe-failure-role-fanout
       PermissionsBoundary: arn:aws:iam::154794777636:policy/InternSandboxBoundary
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
@@ -86,7 +86,7 @@ Resources:
   StateMachineRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: intern-diego-van-overberghe-statemachine-role
+      RoleName: intern-diego-van-overberghe-statemachine-role-fanout
       PermissionsBoundary: arn:aws:iam::154794777636:policy/InternSandboxBoundary
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
@@ -116,7 +116,7 @@ Resources:
       Role: !GetAtt SumosimFunctionRole.Arn
       PackageType: Image
       ImageUri: IMAGE_URI_PLACEHOLDER
-      FunctionName: intern-diego-van-overberghe-sumo-sim
+      FunctionName: intern-diego-van-overberghe-sumo-sim-fanout
       ImageConfig:
         Command:
           - handlers.sumo_sim.sumo_sim_handler
@@ -129,7 +129,7 @@ Resources:
       Role: !GetAtt PostprocessFinaliseFunctionRole.Arn
       PackageType: Image
       ImageUri: IMAGE_URI_PLACEHOLDER
-      FunctionName: intern-diego-van-overberghe-postprocess
+      FunctionName: intern-diego-van-overberghe-postprocess-fanout
       ImageConfig:
         Command:
           - handlers.postprocess.postprocess_handler
@@ -142,7 +142,7 @@ Resources:
       Role: !GetAtt PostprocessFinaliseFunctionRole.Arn
       PackageType: Image
       ImageUri: IMAGE_URI_PLACEHOLDER
-      FunctionName: intern-diego-van-overberghe-finalise
+      FunctionName: intern-diego-van-overberghe-finalise-fanout
       ImageConfig:
         Command:
           - handlers.finalise.finalise_handler
@@ -155,7 +155,7 @@ Resources:
       Role: !GetAtt FailureFunctionRole.Arn
       PackageType: Image
       ImageUri: IMAGE_URI_PLACEHOLDER
-      FunctionName: intern-diego-van-overberghe-failure
+      FunctionName: intern-diego-van-overberghe-failure-fanout
       ImageConfig:
         Command:
           - handlers.failure.failure_handler
