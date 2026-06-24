@@ -50,7 +50,6 @@ def sumo_sim_handler(event: dict, context: Any):
 
     edge_period_add_xml_temp_path.write_text(
         f'<additional>'
-        f'<vType id="car" vClass="passenger"/>'  # <-- Added fallback definition
         f'<edgeData id="split_periods" '
         f'file="{absolute_edge_output_path}" freq="{INTERVAL_SIZE}"/>'
         f'</additional>'.strip())
@@ -90,6 +89,7 @@ def sumo_sim_handler(event: dict, context: Any):
             "--summary-output",
             str(summary_output_temp_path),
             "--no-warnings",
+            "--ignore-route-errors",
             "--additional-files", # This will force SUMO to break up the edge aggreagation into 300s intervals
             str(edge_period_add_xml_temp_path),
         ]
