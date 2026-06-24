@@ -96,9 +96,9 @@ def sumo_sim_handler(event: dict, context: Any):
 
         try:
             run.check_returncode()
-        except subprocess.CalledProcessError:
+        except subprocess.CalledProcessError as err:
             print(run.stderr)
-            raise RuntimeError(f"SUMO Failed. Stderr: {run.stderr} | Stdout: {run.stdout}") from e
+            raise RuntimeError(f"SUMO Failed. Stderr: {run.stderr} | Stdout: {run.stdout}") from err
 
         total_time_and_total_vehicle_matches = (
             re.search(".*#(\\d+(?:\\.\\d+)?).*TOT (\\d+) ACT", run.stdout)
