@@ -11,10 +11,20 @@ Follow AWS Setup instructions from the `intern_assignment.md`
 run `deploy.sh` to build the image, upload it to ECR, deploy the lambdas and the state machine. During the deploy, accept the changeset to proceed.
 
 run
-```
+```aw
 aws stepfunctions start-execution \
     --state-machine-arn arn:aws:states:eu-central-2:154794777636:stateMachine:intern-diego-van-overberghe-pipeline \
-    --input '{"scenario_zip_url": "s3://transcality-intern/shared/small-scenario.zip", "output_prefix": "s3://transcality-intern/diego-van-overberghe/run-n"}'
+    --input '{"scenario_zip_url": "s3://transcality-intern/shared/small-scenario.zip", "output_prefix": "s3://transcality-intern/diego-van-overberghe/run-001"}'
+```
+
+and update `run-001` as appropriate.
+
+To use the fanout pipeline, use this command after running deploy from the fanout branch:
+
+```aw
+aws stepfunctions start-execution \
+    --state-machine-arn arn:aws:states:eu-central-2:154794777636:stateMachine:intern-diego-van-overberghe-pipeline-fanout \
+    --input '{"scenario_zip_url": "s3://transcality-intern/shared/small-scenario.zip", "output_prefix": "s3://transcality-intern/diego-van-overberghe/run-001"}'
 ```
 
 In the output of the previous command, locate the execution ARN. Copy this and use it to query the state of the execution:
@@ -29,6 +39,62 @@ aws stepfunctions start-execution \
 ```
 
 To tear down, run `sam delete --stack-name intern-diego-van-overberghe-pipeline-stack`
+
+## Notes about fanout:
+
+The first run takes 18.57s and the second 9.52s. Increasing the INTERVAL_SIZE (reducing number of concurrent workers) improves time to 12.0s for fanout, which is still more than without.
+The first run is actually the fanout run.
+The concurrency should mean we get a faster time. I still need to investigate this further. I can see the MapIteration, so concurrency is occuring.
+
+See via
+
+```aw
+aws stepfunctions get-execution-history \
+                         --execution-arn arn:aws:states:eu-central-2:154794777636:execution:intern-diego-van-overberghe-pipeline-fanout-v2:2de20fd5-df5a-4c27-b73b-4abc4438f9b7 \
+                         --query "events[*].[type, timestamp]" \
+                         --output table
+```
+
+Fanout
+```bash
+diego@archlinux ~/d/t/assignment (fanout)> aws stepfunctions describe-execution \
+                                                 --execution-arn arn:aws:states:eu-central-2:154794777636:execution:intern-diego-van-overberghe-pipeline-fanout-v2:2de20fd5-df5a-4c27-b73b-4abc4438f9b7 \
+                                                 --query '[name, startDate, stopDate]' \
+                                                 --output json
+[
+    "2de20fd5-df5a-4c27-b73b-4abc4438f9b7",
+    1782334089.8,
+    1782334108.374
+]
+```
+
+No Fanout
+
+```bash
+diego@archlinux ~/d/t/assignment (fanout)> aws stepfunctions describe-execution \
+                                                 --execution-arn arn:aws:states:eu-central-2:154794777636:execution:intern-diego-van-overberghe-pipeline:afb0ec14-5409-433f-8ef1-3816d81ab5c6 \
+                                                 --query '[name, startDate, stopDate]' \
+                                                 --output json
+[
+    "afb0ec14-5409-433f-8ef1-3816d81ab5c6",
+    1782334905.705,
+    1782334915.228
+]
+```
+
+For a larger interval size (5000s instead of 300s), the fan out time drops to 12.0s
+
+```bash
+diego@archlinux ~/d/t/assignment (fanout)> aws stepfunctions describe-execution \
+                                                 --execution-arn arn:aws:states:eu-central-2:154794777636:execution:intern-diego-van-overberghe-pipeline-fanout-v2:b833cbbf-f7d4-4fe1-8189-c83366b2121d \
+                                                 --query '[name, startDate, stopDate]' \
+                                                 --output json
+[
+    "b833cbbf-f7d4-4fe1-8189-c83366b2121d",
+    1782335712.071,
+    1782335724.08
+]
+```
 
 ## Assumptions:
 
@@ -47,6 +113,8 @@ I struggled with running `sam build`, then `sam deploy`, as `sam build` was sayi
 The `deploy.sh` script is idempotent only if changes are committed. This is because of how images are tagged with a commit hash rather than something like a timestamp, or uuid, which would be essentially unique on each deploy. Without a new commit, `sam` will say "no changes to deploy". 
 
 I am retrying on any `States.ALL` failure, not just `States.TaskFailed`, so more errors are caught. This is a superset and catches additional failure modes.
+
+Due to a SUMO issue with adding the additional file to split the interval, all routed vTypes have to be declared in the additional file we create. I hope this is ok for now.
 
 ## What I would do with more time:
 
