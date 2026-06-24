@@ -88,7 +88,7 @@ def postprocess_handler(event: dict, context: Any):
 
                 rows.append(row)
 
-        df = pl.DataFrame(rows)
+        df = pl.DataFrame(rows, infer_schema_length=1000)
         df.lazy().sort(["interval_begin", "edge_id"]).sink_parquet(parquet_temp_path)
 
         if output_prefix.startswith("s3://"):
