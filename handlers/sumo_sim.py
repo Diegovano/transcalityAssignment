@@ -49,9 +49,11 @@ def sumo_sim_handler(event: dict, context: Any):
     edge_period_add_xml_temp_path = TMP / "edge_period.add.xml"
 
     edge_period_add_xml_temp_path.write_text(
-        """<additional><edgeData id="split_periods" """ +
-        f"""file="{absolute_edge_output_path}" freq="{INTERVAL_SIZE}"/>""" +
-        """</additional>""".strip())
+        f'<additional>'
+        f'<vType id="car" vClass="passenger"/>'  # <-- Added fallback definition
+        f'<edgeData id="split_periods" '
+        f'file="{absolute_edge_output_path}" freq="{INTERVAL_SIZE}"/>'
+        f'</additional>'.strip())
 
     sumo_sim_event: SumoSimEvent = event
 
