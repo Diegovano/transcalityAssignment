@@ -189,19 +189,29 @@ Resources:
             Next: PostprocessState
 
           PostprocessState:
-            Type: Task
-            Resource: arn:aws:states:::lambda:invoke
+            Type: Map
+            ItemsPath: "$.sim_result.Payload.intervals"
+            MaxConcurrency: 0
+            ResultPath: "$.postprocess_results"
             Parameters:
-              FunctionName: !GetAtt PostprocessFunction.Arn
-              Payload:
-                edge_output_url.$: "$.sim_result.Payload.edge_output_url"
-                output_prefix.$: "$.output_prefix"
-            ResultPath: "$.postprocess_result"
-            Retry:
-              - ErrorEquals: ["States.ALL"]
-                IntervalSeconds: 2
-                BackoffRate: 2.0
-                MaxAttempts: 2
+              edge_output_url.$: "$.sim_result.Payload.edge_output_url"
+              output_prefix.$: "$.output_prefix"
+              interval.$: "$$.Map.Item.Value"
+            Iterator:
+              StartAt: InvokePostprocessLambda
+              States:
+                InvokePostprocessLambda:
+                  Type: Task
+                  Resource: arn:aws:states:::lambda:invoke
+                  Parameters:
+                    FunctionName: !GetAtt PostprocessFunction.Arn
+                    Payload.$: "$"
+                  Retry:
+                    - ErrorEquals: ["States.ALL"]
+                      IntervalSeconds: 2
+                      BackoffRate: 2.0
+                      MaxAttempts: 2
+                  End: true
             Catch:
               - ErrorEquals: ["States.ALL"]
                 ResultPath: "$.error"
@@ -214,7 +224,7 @@ Resources:
             Parameters:
               FunctionName: !GetAtt FinaliseFunction.Arn
               Payload:
-                parquet_url.$: "$.postprocess_result.Payload.parquet_url"
+                parquet_urls.$: "$.postprocess_results[*].Payload.parquet_url"
                 output_prefix.$: "$.output_prefix"
             ResultPath: "$.finalise_result"
             Retry:
