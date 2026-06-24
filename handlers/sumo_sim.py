@@ -36,7 +36,7 @@ def sumo_sim_handler(event: dict, context: Any):
     lambdas also, so I will not repeat this.
     At the same time, I premeptively increased 
     other lambdas' allowances."""
-    INTERVAL_SIZE = 300
+    INTERVAL_SIZE = 5000
 
     edge_output_temp_path = TMP / "edge.xml"
     absolute_edge_output_path = str(edge_output_temp_path.resolve())
