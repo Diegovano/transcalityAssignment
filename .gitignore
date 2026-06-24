@@ -1,6 +1,6 @@
 intern_assignment.md
 .aws-sam
 **/**/__pycache__
-test_*
+test_*/
 tmp
 template-deployed.yaml
