@@ -25,3 +25,4 @@ COPY s3helper.py /var/task/
 RUN mkdir test_data
 COPY test_data/test.zip /var/task/test_data
 COPY test /var/task/test
+COPY edge_period.add.xml /var/task/

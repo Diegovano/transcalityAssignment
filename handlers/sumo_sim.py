@@ -6,10 +6,16 @@ import subprocess
 import traceback
 from s3helper import s3, parse_s3, TMP
 from typing import TypedDict, Any
+import xml.etree.ElementTree as ET
+
+class Interval(TypedDict):
+    begin: float
+    end: float
 
 class SumoSimEvent(TypedDict):
     scenario_zip_url: str
     output_prefix: str
+    intervals: list[Interval]
 
 
 def sumo_sim_handler(event: dict, context: Any):
@@ -30,11 +36,20 @@ def sumo_sim_handler(event: dict, context: Any):
     lambdas also, so I will not repeat this.
     At the same time, I premeptively increased 
     other lambdas' allowances."""
+    INTERVAL_SIZE = 300
+
     edge_output_temp_path = TMP / "edge.xml"
     summary_output_temp_path = TMP / "summary.xml"
 
     scenario_zip_temp_path = TMP / "scenario.zip"
     scenario_temp_path = TMP / "scenario"
+
+    edge_period_add_xml_temp_path = TMP / "edge_period.add.xml"
+
+    edge_period_add_xml_temp_path.write_text(
+        """<additional><edgeData id="split_periods" """ +
+        f"""file="{edge_output_temp_path.name}" freq="{INTERVAL_SIZE}"/>""" +
+        """</additional>""".strip())
 
     sumo_sim_event: SumoSimEvent = event
 
@@ -68,11 +83,11 @@ def sumo_sim_handler(event: dict, context: Any):
             "sumo",
             "-c",
             str(sumocfg),
-            "--edgedata-output",
-            str(edge_output_temp_path),
             "--summary-output",
             str(summary_output_temp_path),
             "--no-warnings",
+            "--additional-files", # This will force SUMO to break up the edge aggreagation into 300s intervals
+            str(edge_period_add_xml_temp_path),
         ]
 
         run = subprocess.run(cmd, capture_output=True, text=True)
@@ -83,17 +98,37 @@ def sumo_sim_handler(event: dict, context: Any):
             print(run.stderr)
             raise
 
-        total_vehicles_matches = re.search(".*TOT (\\d+) ACT", run.stdout)
-        total_vehicles_groups = (
-            total_vehicles_matches.groups()
-            if total_vehicles_matches is not None
+        total_time_and_total_vehicle_matches = (
+            re.search(".*#(\d+(?:\.\d+)?).*TOT (\d+) ACT", run.stdout)
+        )
+        total_time_and_total_vehicle_groups = (
+            total_time_and_total_vehicle_matches.groups()
+            if total_time_and_total_vehicle_matches is not None
             else None
         )
 
-        if total_vehicles_groups is None:
+        if total_time_and_total_vehicle_groups is None:
+            # total_time = 0
             vehicle_count = -1
+            # intervals = []
         else:
-            vehicle_count = int(total_vehicles_groups[0])
+            # total_time = ceil(float(total_time_and_total_vehicle_groups[0]))
+            vehicle_count = int(total_time_and_total_vehicle_groups[1])
+
+            # full_intervals = total_time // INTERVAL_SIZE
+            # intervals = [{"begin": i*INTERVAL_SIZE, "end": (i+1)*INTERVAL_SIZE} for i in range(full_intervals)]
+            # if full_intervals != total_time / INTERVAL_SIZE:
+            #     intervals.append({"begin": full_intervals * INTERVAL_SIZE, "end": total_time})
+
+        intervals = []
+
+        for _, elem in ET.iterparse(edge_output_temp_path, events=("end",)):
+            if elem.tag == "interval":
+                intervals.append({
+                    "begin": float(elem.attrib["begin"]),
+                    "end": float(elem.attrib["end"])
+                })
+                elem.clear()
 
         if output_prefix.startswith("s3://"):
             bucket, prefix = parse_s3(output_prefix)
@@ -109,6 +144,7 @@ def sumo_sim_handler(event: dict, context: Any):
                 "edge_output_url": f"s3://{bucket}/{prefix}/edge.xml",
                 "summary_url": f"s3://{bucket}/{prefix}/summary.xml",
                 "vehicle_count": vehicle_count,
+                "intervals": intervals
             }
 
         else:
@@ -120,6 +156,7 @@ def sumo_sim_handler(event: dict, context: Any):
                 "edge_output_url": str(edge_output_final_path),
                 "summary_url": str(summary_output_final_path),
                 "vehicle_count": vehicle_count,
+                "intervals": intervals
             }
 
     except Exception as e:
@@ -132,6 +169,9 @@ def sumo_sim_handler(event: dict, context: Any):
             # I could also delete the whole tmp dir?
             summary_output_temp_path.unlink(missing_ok=True)
             edge_output_temp_path.unlink(missing_ok=True)
+
+            edge_period_add_xml_temp_path.unlink(missing_ok=True)
+            pass
         except:
             pass
 

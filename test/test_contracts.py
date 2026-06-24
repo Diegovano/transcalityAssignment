@@ -18,20 +18,29 @@ def test_contracts_and_pipeline():
     assert "edge_output_url" in sumo_sim_response
     assert "summary_url" in sumo_sim_response
     assert "vehicle_count" in sumo_sim_response
+    assert "intervals" in sumo_sim_response
 
-    postprocess_event = PostprocessEvent(
-        edge_output_url=sumo_sim_response["edge_output_url"],
-        output_prefix=output_prefix
-    )
+    print(sumo_sim_response["intervals"])
 
-    postprocess_response = postprocess_handler(postprocess_event, None)
+    postprocess_responses = []
 
-    assert "status" in postprocess_response
-    assert "parquet_url" in postprocess_response
-    assert "rows" in postprocess_response
+    for interval in sumo_sim_response["intervals"]:
+        postprocess_event = PostprocessEvent(
+            edge_output_url=sumo_sim_response["edge_output_url"],
+            output_prefix=output_prefix,
+            interval=interval
+        )
+
+        postprocess_response = postprocess_handler(postprocess_event, None)
+
+        assert "status" in postprocess_response
+        assert "parquet_url" in postprocess_response
+        assert "rows" in postprocess_response
+
+        postprocess_responses.append(postprocess_response)
 
     finalise_event = FinaliseEvent(
-        parquet_url=postprocess_response["parquet_url"],
+        parquet_urls=list(map(lambda res: res["parquet_url"], postprocess_responses)),
         output_prefix=output_prefix
     )
 

@@ -7,7 +7,7 @@ from s3helper import s3, parse_s3, TMP
 from typing import TypedDict, Any
 
 class FinaliseEvent(TypedDict):
-    parquet_url: str
+    parquet_urls: list[str]
     output_prefix: str
 
 
@@ -16,14 +16,19 @@ def finalise_handler(event: dict, context: Any) -> dict:
     an allocation of 512 MB. Could safely be reduced to
     256 MB. First init time ~800ms-1.3s. 
     Later invocations run in ~400-550ms."""
-    parquet_temp_path = TMP / "edges.parquet"
-
     finalise_event: FinaliseEvent = event
-    assert "parquet_url" in finalise_event
+    assert "parquet_urls" in finalise_event
     assert "output_prefix" in finalise_event
 
-    url = finalise_event["parquet_url"]
+    urls = finalise_event["parquet_urls"]
     output_prefix = finalise_event["output_prefix"]
+
+    parquet_temp_paths: list[pathlib.Path] = []
+
+    for i, url in enumerate(urls):
+        parquet_temp_paths.append(
+            TMP / f"edges_{i}.parquet"
+        )
 
     if not output_prefix.startswith("s3://"):
         output_path = pathlib.Path(output_prefix)
@@ -31,13 +36,15 @@ def finalise_handler(event: dict, context: Any) -> dict:
         summary_json_final_path = output_path / "summary.json"
 
     try:
-        if url.startswith("s3://"):
-            bucket, key = parse_s3(url)
-            s3.download_file(bucket, key, str(parquet_temp_path))
-        else:
-            shutil.copy(pathlib.Path(url), parquet_temp_path)
+        for url, parquet_temp_path in zip(urls, parquet_temp_paths):
+            if url.startswith("s3://"):
+                bucket, key = parse_s3(url)
+                s3.download_file(bucket, key, str(parquet_temp_path))
+            else:
+                shutil.copy(pathlib.Path(url), parquet_temp_path)
 
-        df = pl.scan_parquet(parquet_temp_path)
+        df = pl.scan_parquet(parquet_temp_paths)
+
         max_flow_top_10_lf = (
             df.group_by("edge_id")
             .agg(pl.col("flow").sum().alias("total_flow"))
@@ -84,7 +91,8 @@ def finalise_handler(event: dict, context: Any) -> dict:
         raise RuntimeError(f"{e}\n{traceback.format_exc()}") from e
     finally:
         try:
-            parquet_temp_path.unlink(missing_ok=True)
+            for temp_path in parquet_temp_paths:
+                temp_path.unlink(missing_ok=True)
         except:
             pass
 

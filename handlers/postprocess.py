@@ -8,9 +8,14 @@ from s3helper import s3, parse_s3, TMP
 from typing import TypedDict, Any
 from urllib.parse import urlparse
 
+class Interval(TypedDict):
+    begin: float
+    end: float
+
 class PostprocessEvent(TypedDict):
     edge_output_url: str
     output_prefix: str
+    interval: Interval
 
 
 def postprocess_handler(event: dict, context: Any):
@@ -25,14 +30,18 @@ def postprocess_handler(event: dict, context: Any):
 
     assert "edge_output_url" in postprocess_event
     assert "output_prefix" in postprocess_event
+    assert "interval" in postprocess_event
 
     url = postprocess_event["edge_output_url"]
     output_prefix = postprocess_event["output_prefix"]
+    interval = postprocess_event["interval"]
+
+    parquet_name = f"""edges{interval["begin"]}-{interval["end"]}.parquet"""
 
     if not output_prefix.startswith("s3://"):
         output_path = pathlib.Path(output_prefix)
         output_path.mkdir(parents=True, exist_ok=True)
-        parquet_final_path = output_path / "edges.parquet"
+        parquet_final_path = output_path / parquet_name
 
     try:
         if url.startswith("s3://"):
@@ -53,16 +62,28 @@ def postprocess_handler(event: dict, context: Any):
                 xml_event == "end"
                 and elem.tag == "edge"
                 and current_interval_begin is not None
+                and current_interval_begin == interval["begin"]
             ):
-                row = {
-                    "interval_begin": current_interval_begin,
-                    "edge_id": elem.attrib["id"],
-                    "speed": float(elem.attrib["speed"]),
-                    "density": float(elem.attrib["density"]),
-                    "flow": float(elem.attrib["flow"]),
-                    "waiting_time": float(elem.attrib["waitingTime"]),
-                    "sampled_seconds": float(elem.attrib["sampledSeconds"])
-                }
+                if float(elem.attrib.get("sampledSeconds")) != 0.0:
+                    row = {
+                        "interval_begin": current_interval_begin,
+                        "edge_id": elem.attrib["id"],
+                        "speed": float(elem.attrib["speed"]),
+                        "density": float(elem.attrib["density"]),
+                        "flow": float(elem.attrib["flow"]),
+                        "waiting_time": float(elem.attrib["waitingTime"]),
+                        "sampled_seconds": float(elem.attrib["sampledSeconds"])
+                    }
+                else:
+                    row = {
+                        "interval_begin": current_interval_begin,
+                        "edge_id": elem.attrib["id"],
+                        "speed": None,
+                        "density": None,
+                        "flow": None,
+                        "waiting_time": None,
+                        "sampled_seconds": 0.0
+                    }
                 elem.clear()
 
                 rows.append(row)
@@ -73,11 +94,11 @@ def postprocess_handler(event: dict, context: Any):
         if output_prefix.startswith("s3://"):
             bucket, prefix = parse_s3(output_prefix)
 
-            s3.upload_file(str(parquet_temp_path), bucket, f"{prefix}/edges.parquet")
+            s3.upload_file(str(parquet_temp_path), bucket, f"{prefix}/{parquet_name}")
 
             return {
                 "status": "success",
-                "parquet_url": f"s3://{bucket}/{prefix}/edges.parquet",
+                "parquet_url": f"s3://{bucket}/{prefix}/{parquet_name}",
                 "rows": df.height,
             }
         else:
