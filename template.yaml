@@ -11,7 +11,7 @@ Resources:
   SumosimFunctionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: intern-diego-van-overberghe-sumo-sim-role-fanout  # explicit, boundary-compliant
+      RoleName: intern-diego-van-overberghe-sumo-sim-role-fanout-v2  # explicit, boundary-compliant
       PermissionsBoundary: arn:aws:iam::154794777636:policy/InternSandboxBoundary
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
