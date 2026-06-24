@@ -164,7 +164,7 @@ Resources:
     Type: AWS::Serverless::StateMachine
     Properties:
       Role: !GetAtt StateMachineRole.Arn
-      Name: intern-diego-van-overberghe-pipeline
+      Name: intern-diego-van-overberghe-pipeline-fanout
       Definition:
         StartAt: "SumoSimState"
         States:
