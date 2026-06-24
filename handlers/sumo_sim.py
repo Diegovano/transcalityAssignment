@@ -39,6 +39,8 @@ def sumo_sim_handler(event: dict, context: Any):
     INTERVAL_SIZE = 300
 
     edge_output_temp_path = TMP / "edge.xml"
+    absolute_edge_output_path = str(edge_output_temp_path.resolve())
+
     summary_output_temp_path = TMP / "summary.xml"
 
     scenario_zip_temp_path = TMP / "scenario.zip"
@@ -48,7 +50,7 @@ def sumo_sim_handler(event: dict, context: Any):
 
     edge_period_add_xml_temp_path.write_text(
         """<additional><edgeData id="split_periods" """ +
-        f"""file="{edge_output_temp_path.name}" freq="{INTERVAL_SIZE}"/>""" +
+        f"""file="{absolute_edge_output_path}" freq="{INTERVAL_SIZE}"/>""" +
         """</additional>""".strip())
 
     sumo_sim_event: SumoSimEvent = event
