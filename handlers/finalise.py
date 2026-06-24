@@ -44,7 +44,10 @@ def finalise_handler(event: dict, context: Any) -> dict:
             .top_k(k=10, by="total_flow")
         )
         global_mean_speed_lf = df.select(
-            pl.col("speed").mean().alias("global_mean_speed")
+            (
+                (pl.col("speed") * pl.col("sampled_seconds")).sum()
+                / pl.col("sampled_seconds").sum()
+            ).alias("global_mean_speed")
         )
         total_sim_time_lf = df.select(
             pl.col("sampled_seconds").sum().alias("total_sim_time")
